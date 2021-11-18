@@ -1,27 +1,39 @@
-import numpy as np
-import matplotlib.pyplot as plt
-
 class BreyoSpec():
 
-    def __init__(self, flux):
+    def __init__(self, filepaths):
 
         '''
-        flux [array]       : array of flux, can be n-dimensional
-        wavelength [array] : 1 dimensional array of wavelengths
+        filepaths [list] : list of paths to the fits files with flux data
         '''
 
-        if len(flux.shape) == 1:
-            flux = [flux]
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        from astropy.io import fits
+
+        flux = []
+        hdrs = []
+
+        if type(filepaths) == str:
+            filepaths = [filepaths]
+
+        for path in filepaths:
+            hdu = fits.open(path)[0]
+            flux.append(hdu.data)
+            hdrs.append(hdu.header)
+
+        flux = np.array(flux)
+        hdrs = np.array(hdrs)
 
         normFluxes = []
         for f in flux:
-            normWave, normFlux = self.norm()
+            normWave, normFlux = self.norm(flux, hdrs)
             normFluxes.append(normFlux)
 
         self.flux = np.array(normFluxes)
         self.wave = np.array(normWave)
 
-    def norm(inFlux):
+    def norm(self, inFlux, header):
         '''
         Function to normalize the demetra output data. Uses specutils to fit the
         spectrum and then flatten it
