@@ -1,3 +1,9 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from astropy.io import fits
+
+
 class BreyoSpec():
 
     def __init__(self, filepaths):
@@ -6,32 +12,27 @@ class BreyoSpec():
         filepaths [list] : list of paths to the fits files with flux data
         '''
 
-        import numpy as np
-        import matplotlib.pyplot as plt
-        import pandas as pd
-        from astropy.io import fits
-
-        flux = []
-        hdrs = []
+        normFluxes = []
+        normWaves = []
 
         if type(filepaths) == str:
             filepaths = [filepaths]
 
         for path in filepaths:
+
             hdu = fits.open(path)[0]
-            flux.append(hdu.data)
-            hdrs.append(hdu.header)
+            flux = hdu.data
+            hdr = hdu.header
 
-        flux = np.array(flux)
-        hdrs = np.array(hdrs)
+            normWave, normFlux = self.norm(flux, hdr)
 
-        normFluxes = []
-        for f in flux:
-            normWave, normFlux = self.norm(flux, hdrs)
-            normFluxes.append(normFlux)
+            whereVisible = np.where((normWave > 4000) * (normWave < 7000))[0]
+
+            normWaves.append(normWave[whereVisible])
+            normFluxes.append(normFlux[whereVisible])
 
         self.flux = np.array(normFluxes)
-        self.wave = np.array(normWave)
+        self.wave = np.array(normWaves)
 
     def norm(self, inFlux, header):
         '''
@@ -42,15 +43,13 @@ class BreyoSpec():
         '''
 
         from specutils import Spectrum1D, SpectralRegion
-        import astropy.wcs as fitswcs
+        from astropy.wcs import WCS
         from astropy.modeling import models, fitting
         from specutils.fitting import fit_generic_continuum
         from astropy import units as u
 
         # create specutils Spectrum1D Object
-        wcsData = fitswcs.WCS(header={'CDELT1': header['CDELT1'], 'CRVAL1': header['CRVAL1'],
-                               'CUNIT1': header['CUNIT1'], 'CTYPE1': header['CTYPE1'],
-                               'CRPIX1': header['CRPIX1']})
+        wcsData = WCS(header)
 
         spec = Spectrum1D(flux=inFlux * u.Jy, wcs=wcsData)
 
@@ -58,6 +57,18 @@ class BreyoSpec():
         g1Fit = fit_generic_continuum(spec, exclude_regions=[SpectralRegion(3700 * u.AA, 4000 * u.AA), SpectralRegion(4825 * u.AA, 4885 * u.AA), SpectralRegion(6520 * u.AA, 6540 * u.AA)])
         yCont = g1Fit(spec.spectral_axis)
 
-        normSpec = spec / yCont
+        normSpec = spec.flux / yCont
 
-        return normSpec.spectral_axis, normSpec.flux
+        print(len(normSpec), len(spec.spectral_axis))
+
+        return np.array(spec.spectral_axis), np.array(normSpec)
+
+    def plot(self, ax=None, **kwargs):
+
+        if not ax:
+            fig, ax = plt.subplots(figsize=(16,6))
+
+        ax.plot(self.wave[0], self.flux[0], **kwargs)
+        ax.set_xlabel('Wavelength [$\AA$]', fontsize=16)
+        ax.set_ylabel('Flux', fontsize=16)
+        ax.grid()
