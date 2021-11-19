@@ -59,8 +59,6 @@ class BreyoSpec():
 
         normSpec = spec.flux / yCont
 
-        print(len(normSpec), len(spec.spectral_axis))
-
         return np.array(spec.spectral_axis), np.array(normSpec)
 
     def plot(self, ax=None, **kwargs):
