@@ -6,23 +6,50 @@ from astropy.io import fits
 
 class BreyoSpec():
 
-    def __init__(self, filepaths):
+    def __init__(self, filepaths=None, inFlux=None, inHdr=None):
 
         '''
         filepaths [list] : list of paths to the fits files with flux data
+        inFlux [list] :  list of flux arrays, if filepaths isn't provided, must
+                         provide this and inHdr
+        inHdr [list] : headers corresponding to inFlux
         '''
 
+        # make sure each is a list
+        if filepaths and type(filepaths) == str:
+            filepaths = [filepaths]
+
+        if inFlux and np.array(inFlux).ndim == 1:
+            inFlux = [inFlux]
+
+        if inHdr and np.array(inHdr).ndim == 1:
+            inHdr = [inHdr]
+
+        # extract flux info from inputs
+        if filepaths:
+
+            fluxes = []
+            hdrs = []
+
+            for path in filepaths:
+
+                hdu = fits.open(path)[0]
+                fluxes.append(hdu.data)
+                hdrs.append(hdu.header)
+
+        elif influx and inHdr:
+
+            fluxes = inFlux
+            hdrs = inHdr
+
+        else:
+            raise Exception("Please provide either filepaths or inFlux AND inHdr")
+
+        # normalize the flux array using specutils
         normFluxes = []
         normWaves = []
 
-        if type(filepaths) == str:
-            filepaths = [filepaths]
-
-        for path in filepaths:
-
-            hdu = fits.open(path)[0]
-            flux = hdu.data
-            hdr = hdu.header
+        for flux, hdr in zip(fluxes, hdrs):
 
             normWave, normFlux = self.norm(flux, hdr)
 
@@ -31,6 +58,7 @@ class BreyoSpec():
             normWaves.append(normWave[whereVisible])
             normFluxes.append(normFlux[whereVisible])
 
+        # assign normalized wave and fluxes to instance variables
         self.flux = np.array(normFluxes)
         self.wave = np.array(normWaves)
 
@@ -63,10 +91,14 @@ class BreyoSpec():
 
     def plot(self, ax=None, **kwargs):
 
+        n = self.flux.shape[0]
+
         if not ax:
             fig, ax = plt.subplots(figsize=(16,6))
 
-        ax.plot(self.wave[0], self.flux[0], **kwargs)
-        ax.set_xlabel('Wavelength [$\AA$]', fontsize=16)
-        ax.set_ylabel('Flux', fontsize=16)
-        ax.grid()
+        for ii in range(n):
+
+            ax.plot(self.wave[ii], self.flux[ii], **kwargs)
+            ax.set_xlabel('Wavelength [$\AA$]', fontsize=16)
+            ax.set_ylabel('Flux', fontsize=16)
+            ax.grid()
