@@ -92,7 +92,7 @@ class BreyoSpec():
 
         return np.array(spec.spectral_axis), np.array(normSpec)
 
-    def resample(self, dw=5):
+    def resample(self, dw=1):
 
         resampledWave = np.arange(4000+dw,6999,dw)
         resampledFlux = []
