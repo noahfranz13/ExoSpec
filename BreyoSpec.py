@@ -60,8 +60,12 @@ class BreyoSpec():
             normFluxes.append(normFlux[whereVisible])
 
         # assign normalized wave and fluxes to instance variables
-        self.flux = np.array(normFluxes, dtype=float)
-        self.wave = np.array(normWaves, dtype=float)
+        if len(normFluxes) == 1:
+            self.flux = np.array(normFluxes, dtype=float)
+            self.wave = np.array(normWaves, dtype=float)
+        else:
+            self.flux = np.array(normFluxes, dtype=object)
+            self.wave = np.array(normWaves, dtype=object)
 
         self.resample()
 
