@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from astropy.io import fits
+from speclite import resample
 
 
 class BreyoSpec():
@@ -59,8 +60,10 @@ class BreyoSpec():
             normFluxes.append(normFlux[whereVisible])
 
         # assign normalized wave and fluxes to instance variables
-        self.flux = np.array(normFluxes)
-        self.wave = np.array(normWaves)
+        self.flux = np.array(normFluxes, dtype=float)
+        self.wave = np.array(normWaves, dtype=float)
+
+        self.resample()
 
     def norm(self, inFlux, header):
         '''
@@ -89,16 +92,32 @@ class BreyoSpec():
 
         return np.array(spec.spectral_axis), np.array(normSpec)
 
-    def plot(self, ax=None, **kwargs):
+    def resample(self, dw=5):
 
-        n = self.flux.shape[0]
+        resampledWave = np.arange(4000+dw,6999,dw)
+        resampledFlux = []
+
+        for wave, flux in zip(self.wave, self.flux):
+
+            data = np.ones(len(wave), [('wlen', float), ('flux', float)])
+            data['wlen'] = wave
+            data['flux'] = flux
+
+            outFlux = resample(data, wave, resampledWave, 'flux')
+
+            resampledFlux.append(outFlux)
+
+        avgFlux = np.mean(np.array(resampledFlux)['flux'], axis=0)
+
+        self.wave = resampledWave
+        self.flux = avgFlux
+
+    def plot(self, ax=None, **kwargs):
 
         if not ax:
             fig, ax = plt.subplots(figsize=(16,6))
 
-        for ii in range(n):
-
-            ax.plot(self.wave[ii], self.flux[ii], **kwargs)
-            ax.set_xlabel('Wavelength [$\AA$]', fontsize=16)
-            ax.set_ylabel('Flux', fontsize=16)
-            ax.grid()
+        ax.plot(self.wave, self.flux, **kwargs)
+        ax.set_xlabel('Wavelength [$\AA$]', fontsize=16)
+        ax.set_ylabel('Flux', fontsize=16)
+        ax.grid()
