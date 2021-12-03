@@ -94,7 +94,10 @@ class BreyoSpec():
 
         normSpec = spec.flux / yCont
 
-        return np.array(spec.spectral_axis), np.array(normSpec)
+        # convert from ADU to e- for ATIK 460EX CCD
+        normSpecElec = np.array(normSpec) * 0.27 # 0.27 e-/ADU
+
+        return np.array(spec.spectral_axis), normSpecElec
 
     def resample(self, dw=1):
 
