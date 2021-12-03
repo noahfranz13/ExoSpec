@@ -126,5 +126,5 @@ class BreyoSpec():
 
         ax.plot(self.wave, self.flux, **kwargs)
         ax.set_xlabel('Wavelength [$\AA$]', fontsize=16)
-        ax.set_ylabel('Flux', fontsize=16)
+        ax.set_ylabel('Flux [$e^-$]', fontsize=16)
         ax.grid()
